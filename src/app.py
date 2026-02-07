@@ -1,5 +1,5 @@
 ﻿import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, font as tkfont
 
 from .weather import fetch_forecast_periods, fetch_latest_relative_humidity
 from .cities import CITY_DB, ALL_CITIES
@@ -96,7 +96,8 @@ class WeatherApp(tk.Tk):
 
         ttk.Separator(frame).grid(row=3, column=0, columnspan=3, sticky="we", pady=12)
 
-        self.output = tk.Text(frame, height=14, wrap="word", font=("Times New Roman", 11))
+        self.output_font = tkfont.Font(family="Times New Roman", size=11)
+        self.output = tk.Text(frame, height=14, wrap="word", font=self.output_font)
         self.output.grid(row=4, column=0, columnspan=3, sticky="nsew")
         self.output.configure(state="disabled")
 
@@ -158,6 +159,7 @@ class WeatherApp(tk.Tk):
                         show_weather=self.show_weather.get(),
                         show_wind=self.show_wind.get(),
                         target_unit=target_unit,
+                        font=self.output_font,
                     )
                 )
 
@@ -175,3 +177,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
