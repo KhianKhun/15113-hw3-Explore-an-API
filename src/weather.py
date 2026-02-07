@@ -27,6 +27,10 @@ def fetch_forecast_periods(lat: float, lon: float) -> List[Dict[str, Any]]:
 
 
 def fetch_latest_relative_humidity(lat: float, lon: float) -> float | None:
+    """
+    NWS: /points -> observationStations -> try multiple stations -> latest observation.
+    Returns relative humidity percent (float) or None if unavailable.
+    """
     points_url = f"https://api.weather.gov/points/{lat},{lon}"
     r1 = requests.get(points_url, headers=HEADERS_NWS, timeout=20)
     r1.raise_for_status()
@@ -44,7 +48,7 @@ def fetch_latest_relative_humidity(lat: float, lon: float) -> float | None:
     if not features:
         return None
 
-    # Try multiple stations until humidity is available
+    # Try several nearby stations; first one may not report RH
     for feat in features[:10]:
         station_id = feat.get("properties", {}).get("stationIdentifier")
         if not station_id:
@@ -57,8 +61,8 @@ def fetch_latest_relative_humidity(lat: float, lon: float) -> float | None:
         r3 = requests.get(latest_url, headers=HEADERS_NWS, timeout=20)
         if r3.status_code != 200:
             continue
-        obs = r3.json()
 
+        obs = r3.json()
         rh = obs.get("properties", {}).get("relativeHumidity", {}).get("value")
         if rh is not None:
             return float(rh)

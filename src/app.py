@@ -1,7 +1,7 @@
 ﻿import tkinter as tk
 from tkinter import ttk
 
-from .weather import fetch_forecast_periods
+from .weather import fetch_forecast_periods, fetch_latest_relative_humidity
 from .cities import CITY_DB, ALL_CITIES
 from .city_search import CitySearchController
 from .forecast_summary import build_day_summaries, format_days, format_now
@@ -21,10 +21,7 @@ class WeatherApp(tk.Tk):
         self.show_temp_range = tk.BooleanVar(value=False)
         self.show_weather = tk.BooleanVar(value=False)
         self.show_wind = tk.BooleanVar(value=False)
-        self.show_humidity = tk.BooleanVar(value=False)
-        self.show_uv = tk.BooleanVar(value=False)
-        self.show_air = tk.BooleanVar(value=False)
-        self.show_real_feel = tk.BooleanVar(value=False)
+        self.temp_unit_var = tk.StringVar(value="F")
 
         frame = ttk.Frame(self, padding=12)
         frame.pack(fill="both", expand=True)
@@ -74,7 +71,7 @@ class WeatherApp(tk.Tk):
         )
 
         info_frame = ttk.LabelFrame(options_frame, text="Extra Info")
-        info_frame.grid(row=0, column=1, sticky="w")
+        info_frame.grid(row=0, column=1, sticky="w", padx=(0, 12))
 
         ttk.Checkbutton(info_frame, text="Temp range (high/low)", variable=self.show_temp_range).grid(
             row=0, column=0, sticky="w", padx=8, pady=2
@@ -85,17 +82,15 @@ class WeatherApp(tk.Tk):
         ttk.Checkbutton(info_frame, text="Wind dir + speed", variable=self.show_wind).grid(
             row=2, column=0, sticky="w", padx=8, pady=2
         )
-        ttk.Checkbutton(info_frame, text="Humidity", variable=self.show_humidity).grid(
-            row=0, column=1, sticky="w", padx=8, pady=2
+
+        unit_frame = ttk.LabelFrame(options_frame, text="Temperature Unit")
+        unit_frame.grid(row=0, column=2, sticky="w")
+
+        ttk.Radiobutton(unit_frame, text="Fahrenheit (F)", value="F", variable=self.temp_unit_var).grid(
+            row=0, column=0, sticky="w", padx=8, pady=2
         )
-        ttk.Checkbutton(info_frame, text="UV index", variable=self.show_uv).grid(
-            row=1, column=1, sticky="w", padx=8, pady=2
-        )
-        ttk.Checkbutton(info_frame, text="Air pollution", variable=self.show_air).grid(
-            row=2, column=1, sticky="w", padx=8, pady=2
-        )
-        ttk.Checkbutton(info_frame, text="Real feel (if any)", variable=self.show_real_feel).grid(
-            row=3, column=0, sticky="w", padx=8, pady=2
+        ttk.Radiobutton(unit_frame, text="Celsius (C)", value="C", variable=self.temp_unit_var).grid(
+            row=1, column=0, sticky="w", padx=8, pady=2
         )
 
         ttk.Separator(frame).grid(row=3, column=0, columnspan=3, sticky="we", pady=12)
@@ -135,14 +130,18 @@ class WeatherApp(tk.Tk):
 
         try:
             periods = fetch_forecast_periods(lat, lon)
+            humidity = fetch_latest_relative_humidity(lat, lon)
+
             if not periods:
                 raise ValueError("No forecast periods returned.")
+
+            target_unit = self.temp_unit_var.get()
 
             lines = []
             lines.append(f"City: {city}")
             lines.append(f"Coords: {lat:.4f}, {lon:.4f}")
             lines.append("")
-            lines.append(format_now(periods[0]))
+            lines.append(format_now(periods[0], humidity, target_unit))
 
             time_range = self.time_range_var.get().strip()
             if time_range in ("1", "3", "7"):
@@ -157,10 +156,7 @@ class WeatherApp(tk.Tk):
                         show_temp_range=self.show_temp_range.get(),
                         show_weather=self.show_weather.get(),
                         show_wind=self.show_wind.get(),
-                        show_humidity=self.show_humidity.get(),
-                        show_uv=self.show_uv.get(),
-                        show_air=self.show_air.get(),
-                        show_real_feel=self.show_real_feel.get(),
+                        target_unit=target_unit,
                     )
                 )
 
