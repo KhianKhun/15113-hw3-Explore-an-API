@@ -91,7 +91,7 @@ def format_days(
             from_unit = s.get("unit")
             low = _convert_temp(s.get("temp_low"), from_unit, target_unit)
             high = _convert_temp(s.get("temp_high"), from_unit, target_unit)
-            temp_value = "N/A" if low is None and high is None else f"{low:.0f}-{high:.0f} {target_unit}"
+            temp_value = "N/A" if low is None and high is None else f"{low:.0f}~{high:.0f} {target_unit}"
             row_lengths.append(_measure(f"Temp range: {temp_value}", font))
         if show_weather:
             cond_value = s.get("short_forecast", "")
@@ -119,7 +119,7 @@ def format_days(
             if low is None and high is None:
                 details.append(("Temp range", "N/A"))
             else:
-                details.append(("Temp range", f"{low:.0f}-{high:.0f} {target_unit}"))
+                details.append(("Temp range", f"{low:.0f}~{high:.0f} {target_unit}"))
         if show_weather:
             details.append(("Conditions", s.get("short_forecast", "")))
         if show_wind:
