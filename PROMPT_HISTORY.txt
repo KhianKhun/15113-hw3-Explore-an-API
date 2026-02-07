@@ -1,0 +1,36 @@
+In development process, I used codex in coding and chatgpt plus to certain 
+design direction and data processing. The prompts are Chinese in development.
+The development total time is about 6-7 hours. 
+
+1. I discuss the application ideas with AI, such that what type of things should 
+I do, what API is suitable for this project.
+
+2. After certain some directions, I search the relative API guideline and relative
+application order.
+
+3. I discuss the general apperance of the final project, including initial 
+functions, the required package, UI and UX, the file structure of project, and 
+some details
+
+4. I open deep-thinking model, let Gpt give a very rough but runable code, and 
+then I start debugging in Vs Code with codeX
+
+5. The most important thing before working with codeX is confirm and confirm again
+that the API application is work.
+
+6. In codex, my main change is to advance UX and UI (not really, I only change the
+forecast results into New Time Roman style) and complete various functions
+
+7. The last step, I back to Gpt and let him provide a way to get US cities list and
+their longitude and latitude to complete my project. After finding the dataset, 
+I tell codeX "I only want the city with xxxx properties, give me the code"
+
+
+Finally, I think that the meaingful prompts are content with ChatGpt certaining 
+the project direction and file structure, since it tells AI a clear concepts and
+direction. The debugging and achieve parts are responsible by codeX, I just 
+describe what I want, it gives me complete codes, where it requires us an strong
+ability to clear describe what we want but not an ambiguous prompt.
+
+By the way, to achive the aligned report words, I designed an logic (perhaps) and
+told to codeX, it worked and had a good performance. 
