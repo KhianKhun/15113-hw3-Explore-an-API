@@ -2,11 +2,13 @@ import tkinter as tk
 
 
 class CitySearchController:
-    def __init__(self, city_combo, suggest_list, city_var, all_cities):
+    def __init__(self, city_combo, suggest_list, city_var, all_cities, suggest_scroll=None, max_display=10):
         self.city_combo = city_combo
         self.suggest_list = suggest_list
         self.city_var = city_var
         self.all_cities = all_cities
+        self.suggest_scroll = suggest_scroll
+        self.max_display = max_display
 
     def bind(self, status_callback=None):
         self.city_combo.bind("<KeyRelease>", self.on_keyrelease_filter)
@@ -20,18 +22,26 @@ class CitySearchController:
         self.city_combo.bind("<Return>", self.on_combo_return)
         self.city_combo.bind("<Escape>", self.on_escape)
         self.suggest_list.bind("<ButtonRelease-1>", self.on_list_click)
+        self.suggest_list.bind("<MouseWheel>", self.on_mousewheel)
 
     def _hide_suggestions(self):
         self.suggest_list.grid_remove()
         self.suggest_list.selection_clear(0, tk.END)
+        if self.suggest_scroll is not None:
+            self.suggest_scroll.grid_remove()
 
     def _show_suggestions(self, items):
         self.suggest_list.delete(0, tk.END)
         for item in items:
             self.suggest_list.insert(tk.END, item)
-        height = min(6, len(items))
+        height = min(self.max_display, len(items))
         self.suggest_list.configure(height=height)
         self.suggest_list.grid()
+        if self.suggest_scroll is not None:
+            if len(items) > self.max_display:
+                self.suggest_scroll.grid()
+            else:
+                self.suggest_scroll.grid_remove()
         if items:
             self.suggest_list.selection_set(0)
             self.suggest_list.activate(0)
@@ -70,6 +80,7 @@ class CitySearchController:
         self.suggest_list.selection_clear(0, tk.END)
         self.suggest_list.selection_set(index)
         self.suggest_list.activate(index)
+        self.suggest_list.see(index)
         return "break"
 
     def on_up(self, event):
@@ -80,6 +91,7 @@ class CitySearchController:
         self.suggest_list.selection_clear(0, tk.END)
         self.suggest_list.selection_set(index)
         self.suggest_list.activate(index)
+        self.suggest_list.see(index)
         return "break"
 
     def on_combo_return(self, event):
@@ -96,6 +108,14 @@ class CitySearchController:
 
     def on_escape(self, event):
         self._hide_suggestions()
+        return "break"
+
+    def on_mousewheel(self, event):
+        if not self.suggest_list.winfo_ismapped():
+            return
+        delta = int(-1 * (event.delta / 120)) if event.delta else 0
+        if delta:
+            self.suggest_list.yview_scroll(delta, "units")
         return "break"
 
     def on_list_click(self, event):

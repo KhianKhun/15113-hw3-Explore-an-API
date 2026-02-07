@@ -8,7 +8,7 @@ OUTPUT_PATH = Path(__file__).with_name("cities_filtered.tsv")
 
 LSAD_KEEP = {"25"}
 FUNCSTAT_KEEP = {"A"}
-MIN_ALAND = 10_000_000
+MIN_ALAND = 75_000_000
 
 
 def filter_cities(input_path: Path, output_path: Path) -> None:

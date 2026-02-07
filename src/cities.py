@@ -21,14 +21,23 @@ def _load_city_db(path: Path) -> Dict[str, Tuple[float, float]]:
 
     import csv
 
+    def _clean_row(row: Dict[str, str]) -> Dict[str, str]:
+        cleaned: Dict[str, str] = {}
+        for key, value in row.items():
+            clean_key = key.strip() if isinstance(key, str) else key
+            clean_value = value.strip() if isinstance(value, str) else value
+            cleaned[clean_key] = clean_value
+        return cleaned
+
     city_db: Dict[str, Tuple[float, float]] = {}
     with path.open("r", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
-            name = row.get("NAME")
-            state = row.get("USPS")
-            lat = row.get("INTPTLAT")
-            lon = row.get("INTPTLONG")
+            row = _clean_row(row)
+            name = (row.get("NAME") or "").strip()
+            state = (row.get("USPS") or "").strip()
+            lat = (row.get("INTPTLAT") or "").strip()
+            lon = (row.get("INTPTLONG") or "").strip()
             if not (name and state and lat and lon):
                 continue
             try:

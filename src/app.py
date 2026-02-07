@@ -15,8 +15,9 @@ class WeatherApp(tk.Tk):
         self.geometry("700x520")
         self.resizable(False, False)
 
-        self.city_var = tk.StringVar(value=ALL_CITIES[0])
-        self.status_var = tk.StringVar(value="Ready")
+        default_city = ALL_CITIES[0] if ALL_CITIES else ""
+        self.city_var = tk.StringVar(value=default_city)
+        self.status_var = tk.StringVar(value="Ready" if ALL_CITIES else "No cities loaded")
 
         self.time_range_var = tk.StringVar(value="")
         self.show_temp_range = tk.BooleanVar(value=False)
@@ -41,6 +42,10 @@ class WeatherApp(tk.Tk):
         self.suggest_list = tk.Listbox(frame, height=0)
         self.suggest_list.grid(row=1, column=1, sticky="we", padx=(8, 8))
         self.suggest_list.grid_remove()
+        self.suggest_scroll = ttk.Scrollbar(frame, orient="vertical", command=self.suggest_list.yview)
+        self.suggest_list.configure(yscrollcommand=self.suggest_scroll.set)
+        self.suggest_scroll.grid(row=1, column=2, sticky="nsw")
+        self.suggest_scroll.grid_remove()
 
         self.fetch_btn = ttk.Button(frame, text="Fetch", command=self.on_fetch)
         self.fetch_btn.grid(row=0, column=2, sticky="e")
@@ -52,6 +57,8 @@ class WeatherApp(tk.Tk):
             self.suggest_list,
             self.city_var,
             ALL_CITIES,
+            suggest_scroll=self.suggest_scroll,
+            max_display=10,
         )
         self.city_search.bind(status_callback=self.status_var.set)
 
@@ -177,4 +184,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
 
