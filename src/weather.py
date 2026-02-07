@@ -26,6 +26,47 @@ def fetch_forecast_periods(lat: float, lon: float) -> List[Dict[str, Any]]:
     return forecast["properties"]["periods"]
 
 
+def fetch_latest_relative_humidity(lat: float, lon: float) -> float | None:
+    points_url = f"https://api.weather.gov/points/{lat},{lon}"
+    r1 = requests.get(points_url, headers=HEADERS_NWS, timeout=20)
+    r1.raise_for_status()
+    points = r1.json()
+
+    stations_url = points.get("properties", {}).get("observationStations")
+    if not stations_url:
+        return None
+
+    r2 = requests.get(stations_url, headers=HEADERS_NWS, timeout=20)
+    r2.raise_for_status()
+    stations = r2.json()
+
+    features = stations.get("features", [])
+    if not features:
+        return None
+
+    # Try multiple stations until humidity is available
+    for feat in features[:10]:
+        station_id = feat.get("properties", {}).get("stationIdentifier")
+        if not station_id:
+            station_ref = feat.get("id", "")
+            station_id = station_ref.rsplit("/", 1)[-1] if station_ref else None
+        if not station_id:
+            continue
+
+        latest_url = f"https://api.weather.gov/stations/{station_id}/observations/latest"
+        r3 = requests.get(latest_url, headers=HEADERS_NWS, timeout=20)
+        if r3.status_code != 200:
+            continue
+        obs = r3.json()
+
+        rh = obs.get("properties", {}).get("relativeHumidity", {}).get("value")
+        if rh is not None:
+            return float(rh)
+
+    return None
+
+
+
 def summarize_now_and_tomorrow(periods: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     "Now" = first period (closest period, not real-time observation).

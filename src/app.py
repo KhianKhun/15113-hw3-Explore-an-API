@@ -1,20 +1,30 @@
-import tkinter as tk
+﻿import tkinter as tk
 from tkinter import ttk
 
-from .weather import get_weather_by_latlon
+from .weather import fetch_forecast_periods
 from .cities import CITY_DB, ALL_CITIES
 from .city_search import CitySearchController
+from .forecast_summary import build_day_summaries, format_days, format_now
 
 
 class WeatherApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("NWS Weather Lookup (Preset Cities)")
-        self.geometry("600x320")
+        self.geometry("700x520")
         self.resizable(False, False)
 
         self.city_var = tk.StringVar(value=ALL_CITIES[0])
         self.status_var = tk.StringVar(value="Ready")
+
+        self.time_range_var = tk.StringVar(value="")
+        self.show_temp_range = tk.BooleanVar(value=False)
+        self.show_weather = tk.BooleanVar(value=False)
+        self.show_wind = tk.BooleanVar(value=False)
+        self.show_humidity = tk.BooleanVar(value=False)
+        self.show_uv = tk.BooleanVar(value=False)
+        self.show_air = tk.BooleanVar(value=False)
+        self.show_real_feel = tk.BooleanVar(value=False)
 
         frame = ttk.Frame(self, padding=12)
         frame.pack(fill="both", expand=True)
@@ -25,7 +35,7 @@ class WeatherApp(tk.Tk):
             frame,
             textvariable=self.city_var,
             values=ALL_CITIES,
-            width=45
+            width=45,
         )
         self.city_combo.grid(row=0, column=1, sticky="we", padx=(8, 8))
         self.city_combo.focus_set()
@@ -39,17 +49,6 @@ class WeatherApp(tk.Tk):
 
         frame.columnconfigure(1, weight=1)
 
-        ttk.Separator(frame).grid(row=2, column=0, columnspan=3, sticky="we", pady=12)
-
-        self.output = tk.Text(frame, height=11, wrap="word")
-        self.output.grid(row=3, column=0, columnspan=3, sticky="nsew")
-        self.output.configure(state="disabled")
-
-        ttk.Label(frame, textvariable=self.status_var).grid(
-            row=4, column=0, columnspan=3, sticky="w", pady=(8, 0)
-        )
-
-        # --- 打字搜索：绑定键盘事件，�?trace 更可�?---
         self.city_search = CitySearchController(
             self.city_combo,
             self.suggest_list,
@@ -57,7 +56,58 @@ class WeatherApp(tk.Tk):
             ALL_CITIES,
         )
         self.city_search.bind(status_callback=self.status_var.set)
-        # Enter 触发查询
+
+        options_frame = ttk.Frame(frame)
+        options_frame.grid(row=2, column=0, columnspan=3, sticky="we", pady=(10, 0))
+
+        time_frame = ttk.LabelFrame(options_frame, text="Time Range")
+        time_frame.grid(row=0, column=0, sticky="w", padx=(0, 12))
+
+        ttk.Radiobutton(time_frame, text="Show Today", value="1", variable=self.time_range_var).grid(
+            row=0, column=0, sticky="w", padx=8, pady=2
+        )
+        ttk.Radiobutton(time_frame, text="Show Next 3 Days", value="3", variable=self.time_range_var).grid(
+            row=1, column=0, sticky="w", padx=8, pady=2
+        )
+        ttk.Radiobutton(time_frame, text="Show Next 7 Days", value="7", variable=self.time_range_var).grid(
+            row=2, column=0, sticky="w", padx=8, pady=2
+        )
+
+        info_frame = ttk.LabelFrame(options_frame, text="Extra Info")
+        info_frame.grid(row=0, column=1, sticky="w")
+
+        ttk.Checkbutton(info_frame, text="Temp range (high/low)", variable=self.show_temp_range).grid(
+            row=0, column=0, sticky="w", padx=8, pady=2
+        )
+        ttk.Checkbutton(info_frame, text="Conditions", variable=self.show_weather).grid(
+            row=1, column=0, sticky="w", padx=8, pady=2
+        )
+        ttk.Checkbutton(info_frame, text="Wind dir + speed", variable=self.show_wind).grid(
+            row=2, column=0, sticky="w", padx=8, pady=2
+        )
+        ttk.Checkbutton(info_frame, text="Humidity", variable=self.show_humidity).grid(
+            row=0, column=1, sticky="w", padx=8, pady=2
+        )
+        ttk.Checkbutton(info_frame, text="UV index", variable=self.show_uv).grid(
+            row=1, column=1, sticky="w", padx=8, pady=2
+        )
+        ttk.Checkbutton(info_frame, text="Air pollution", variable=self.show_air).grid(
+            row=2, column=1, sticky="w", padx=8, pady=2
+        )
+        ttk.Checkbutton(info_frame, text="Real feel (if any)", variable=self.show_real_feel).grid(
+            row=3, column=0, sticky="w", padx=8, pady=2
+        )
+
+        ttk.Separator(frame).grid(row=3, column=0, columnspan=3, sticky="we", pady=12)
+
+        self.output = tk.Text(frame, height=14, wrap="word")
+        self.output.grid(row=4, column=0, columnspan=3, sticky="nsew")
+        self.output.configure(state="disabled")
+
+        ttk.Label(frame, textvariable=self.status_var).grid(
+            row=5, column=0, columnspan=3, sticky="w", pady=(8, 0)
+        )
+
         self.bind("<Return>", lambda event: self.on_fetch())
 
     def set_output(self, text: str):
@@ -65,6 +115,7 @@ class WeatherApp(tk.Tk):
         self.output.delete("1.0", "end")
         self.output.insert("1.0", text)
         self.output.configure(state="disabled")
+
     def on_fetch(self):
         city = self.city_var.get().strip()
 
@@ -83,28 +134,37 @@ class WeatherApp(tk.Tk):
         self.update_idletasks()
 
         try:
-            info = get_weather_by_latlon(lat, lon)
+            periods = fetch_forecast_periods(lat, lon)
+            if not periods:
+                raise ValueError("No forecast periods returned.")
 
-            now_line = f'{info["now_label"]}: {info["now_temp"]}°{info["now_unit"]} �?{info["now_short"]}'
+            lines = []
+            lines.append(f"City: {city}")
+            lines.append(f"Coords: {lat:.4f}, {lon:.4f}")
+            lines.append("")
+            lines.append(format_now(periods[0]))
 
-            if info["tomorrow_label"] is None:
-                tom_line = "Tomorrow: (could not find tomorrow forecast periods)"
-            else:
-                low = info["tomorrow_low"]
-                high = info["tomorrow_high"]
-                unit = info["unit"]
-                if low is None:
-                    tom_line = f'{info["tomorrow_label"]}: {high}°{unit}'
-                else:
-                    tom_line = f'{info["tomorrow_label"]} range: Low {low}°{unit} / High {high}°{unit}'
+            time_range = self.time_range_var.get().strip()
+            if time_range in ("1", "3", "7"):
+                days = int(time_range)
+                summaries = build_day_summaries(periods)
+                lines.append("")
+                lines.append(f"Forecast (next {days} day{'s' if days > 1 else ''}):")
+                lines.extend(
+                    format_days(
+                        summaries,
+                        days,
+                        show_temp_range=self.show_temp_range.get(),
+                        show_weather=self.show_weather.get(),
+                        show_wind=self.show_wind.get(),
+                        show_humidity=self.show_humidity.get(),
+                        show_uv=self.show_uv.get(),
+                        show_air=self.show_air.get(),
+                        show_real_feel=self.show_real_feel.get(),
+                    )
+                )
 
-            out = (
-                f"City: {city}\n"
-                f"Coords: {lat:.4f}, {lon:.4f}\n\n"
-                f"{now_line}\n"
-                f"{tom_line}\n"
-            )
-            self.set_output(out)
+            self.set_output("\n".join(lines))
             self.status_var.set("Done")
 
         except Exception as e:
@@ -118,5 +178,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
