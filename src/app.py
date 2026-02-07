@@ -4,7 +4,8 @@ from tkinter import ttk
 from .weather import fetch_forecast_periods, fetch_latest_relative_humidity
 from .cities import CITY_DB, ALL_CITIES
 from .city_search import CitySearchController
-from .forecast_summary import build_day_summaries, format_days, format_now
+from .forecast_summary import build_day_summaries
+from .forecast_format import format_days, format_now
 
 
 class WeatherApp(tk.Tk):
@@ -95,7 +96,7 @@ class WeatherApp(tk.Tk):
 
         ttk.Separator(frame).grid(row=3, column=0, columnspan=3, sticky="we", pady=12)
 
-        self.output = tk.Text(frame, height=14, wrap="word")
+        self.output = tk.Text(frame, height=14, wrap="word", font=("Times New Roman", 11))
         self.output.grid(row=4, column=0, columnspan=3, sticky="nsew")
         self.output.configure(state="disabled")
 
